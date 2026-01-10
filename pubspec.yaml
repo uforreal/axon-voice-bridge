@@ -1,0 +1,52 @@
+name: rufen_app
+description: "RUFEN - AI Voice Companion"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  
+  # Audio & Speech
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.2.0
+  permission_handler: ^11.3.1
+  
+  # HTTP for API calls
+  http: ^1.2.2
+  
+  # State management
+  provider: ^6.1.2
+  
+  # Networking
+  web_socket_channel: ^2.4.0
+  
+  # UI Effects
+  flutter_animate: ^4.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  ios: true
+  image_path: "assets/icons/app_icon_cropped.png"
+  remove_alpha_ios: true
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/icons/app_icon.png
+    - assets/images/dream-room.jpg
+    - assets/images/futuristic-interior.jpg
+    - assets/images/green-grotto.jpg
+    - assets/images/tuscany-landscape.jpg
