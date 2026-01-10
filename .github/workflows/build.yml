@@ -1,0 +1,41 @@
+name: Build iOS IPA
+
+on:
+    push:
+        branches: ["main"]
+    workflow_dispatch:
+
+jobs:
+    build_ios:
+        name: Build Flutter iOS App
+        runs-on: macos-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  channel: "stable"
+
+            - name: Install dependencies
+              run: flutter pub get
+
+            - name: Build iOS (No Codesign)
+              run: |
+                  flutter build ios --release --no-codesign
+
+            - name: Create Payload Directory
+              run: |
+                  mkdir -p Payload
+                  mv build/ios/iphoneos/Runner.app Payload/
+
+            - name: Zip IPA
+              run: |
+                  zip -r AXONVoice.ipa Payload
+
+            - name: Upload IPA Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: AXONVoice
+                  path: AXONVoice.ipa
