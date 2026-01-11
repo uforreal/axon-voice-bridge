@@ -5,7 +5,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-// CONFIGURATION
+// CLOUD SERVER
 const String SERVER_URL = 'wss://samantha-cloud-core.onrender.com';
 
 enum CallStatus { idle, connecting, live, muted, listening, speaking }
@@ -18,51 +18,65 @@ class CallStateProvider extends ChangeNotifier {
   bool _isMuted = false;
   
   Timer? _imageTimer;
+  Timer? _keepAliveTimer;
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _speech = SpeechToText();
   WebSocketChannel? _channel;
   
-  // Voice Input State
   bool _speechEnabled = false;
+  bool _isInitialized = false;
   String _lastWords = '';
 
   CallStateProvider() {
-    _initTts();
-    _initSpeech();
+    _initializeAll();
     _startImageRotation();
   }
 
-  Future<void> _initTts() async {
-    await _tts.setLanguage("en-US");
-    await _tts.setPitch(1.0);
-    await _tts.setSpeechRate(0.5);
-    // Configure voice
-  }
+  Future<void> _initializeAll() async {
+    try {
+      // Initialize TTS first
+      await _tts.setLanguage("en-US");
+      await _tts.setPitch(1.0);
+      await _tts.setSpeechRate(0.5);
+      
+      // iOS specific: Configure audio session for both input and output
+      await _tts.setIosAudioCategory(
+        IosTextToSpeechAudioCategory.playAndRecord,
+        [
+          IosTextToSpeechAudioCategoryOptions.allowBluetooth,
+          IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
+          IosTextToSpeechAudioCategoryOptions.mixWithOthers,
+        ],
+        IosTextToSpeechAudioMode.defaultMode,
+      );
 
-  Future<void> _initSpeech() async {
-    _speechEnabled = await _speech.initialize(
-      onError: (e) => print('Speech Error: $e'),
-      onStatus: (s) {
-        print('Speech Status: $s');
-        // RESTART LOGIC: If we stopped listening but shouldn't have...
-        if (s == "notListening") {
-          bool shouldBeListening = 
-              _isExpanded && 
-              !_isMuted && 
-              _status != CallStatus.speaking &&
-              _status != CallStatus.idle;
-              
-          if (shouldBeListening) {
-            print("Restarting listener loop...");
-            // Small delay to prevent tight loops
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (shouldBeListening) _startListening();
-            });
+      print("[INIT] TTS configured");
+
+      // Initialize Speech Recognition
+      _speechEnabled = await _speech.initialize(
+        onError: (e) {
+          print('[SPEECH ERROR] ${e.errorMsg}');
+          // Try restarting on certain errors
+          if (_isExpanded && !_isMuted) {
+            Future.delayed(const Duration(seconds: 1), _startListening);
           }
-        }
-      },
-    );
-    notifyListeners();
+        },
+        onStatus: (status) {
+          print('[SPEECH STATUS] $status');
+          if (status == "notListening" && _isExpanded && !_isMuted && _status != CallStatus.speaking) {
+            // Auto-restart listening loop
+            Future.delayed(const Duration(milliseconds: 300), _startListening);
+          }
+        },
+      );
+
+      _isInitialized = true;
+      print("[INIT] Speech enabled: $_speechEnabled");
+      notifyListeners();
+      
+    } catch (e) {
+      print("[INIT ERROR] $e");
+    }
   }
 
   void _startImageRotation() {
@@ -89,47 +103,63 @@ class CallStateProvider extends ChangeNotifier {
   }
 
   void expand() {
+    if (!_isInitialized) {
+      print("[EXPAND] Not initialized yet, retrying...");
+      Future.delayed(const Duration(milliseconds: 500), expand);
+      return;
+    }
+    
     _isExpanded = true;
     _status = CallStatus.connecting;
     _callStartTime = DateTime.now();
     _imageTimer?.cancel();
     notifyListeners();
     
-    // Connect to Backend
     _connectToSamantha();
   }
   
   void _connectToSamantha() async {
     try {
-      print("Connecting to $SERVER_URL...");
+      print("[WS] Connecting to $SERVER_URL...");
       _channel = WebSocketChannel.connect(Uri.parse(SERVER_URL));
       
-      // Listen for messages
+      // Start keep-alive pings
+      _keepAliveTimer?.cancel();
+      _keepAliveTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+        if (_channel != null) {
+          _channel!.sink.add(json.encode({"type": "ping"}));
+          print("[WS] Ping sent");
+        }
+      });
+      
       _channel!.stream.listen(
         (message) {
-          print("Received: $message");
+          print("[WS] Received: $message");
           _handleServerMessage(message);
         },
         onError: (error) {
-          print("WebSocket Error: $error");
+          print("[WS ERROR] $error");
           _status = CallStatus.idle;
           notifyListeners();
         },
         onDone: () {
-          print("WebSocket Closed");
+          print("[WS] Connection closed");
+          _keepAliveTimer?.cancel();
           if (_isExpanded) collapse();
         }
       );
       
-      // Signal we are connected
       _status = CallStatus.live;
       notifyListeners();
       
-      // Initial Greeting
+      // Wait a moment for connection to stabilize, then start listening
+      await Future.delayed(const Duration(milliseconds: 500));
       _startListening();
       
     } catch (e) {
-      print("Connection Failed: $e");
+      print("[WS CONNECT ERROR] $e");
+      _status = CallStatus.idle;
+      notifyListeners();
     }
   }
 
@@ -137,19 +167,22 @@ class CallStateProvider extends ChangeNotifier {
     try {
       final data = json.decode(message);
       if (data['type'] == 'samantha_response') {
-        String responseText = data['raw_response']; 
-        _speak(responseText);
+        String responseText = data['raw_response'] ?? data['marked_script'] ?? '';
+        if (responseText.isNotEmpty) {
+          _speak(responseText);
+        }
       }
     } catch (e) {
-      print("Error parsing message: $e");
+      print("[PARSE ERROR] $e");
     }
   }
 
   Future<void> _speak(String text) async {
+    print("[TTS] Speaking: $text");
     _status = CallStatus.speaking;
     notifyListeners();
     
-    // Stop listening while speaking to avoid self-loop
+    // Stop listening while speaking
     await _speech.stop();
     
     await _tts.speak(text);
@@ -158,47 +191,64 @@ class CallStateProvider extends ChangeNotifier {
     _status = CallStatus.live;
     notifyListeners();
     
-    // Resume listening after speaking
+    // Resume listening
+    await Future.delayed(const Duration(milliseconds: 200));
     _startListening();
   }
 
   void _startListening() async {
-    if (_isMuted || !_speechEnabled) return;
+    if (_isMuted || !_speechEnabled || !_isExpanded) {
+      print("[LISTEN] Skipped - muted:$_isMuted enabled:$_speechEnabled expanded:$_isExpanded");
+      return;
+    }
     
-    if (!_speech.isListening) {
+    if (_speech.isListening) {
+      print("[LISTEN] Already listening");
+      return;
+    }
+
+    try {
       _status = CallStatus.listening;
       notifyListeners();
       
+      print("[LISTEN] Starting...");
       await _speech.listen(
         onResult: _onSpeechResult,
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
         localeId: "en_US",
+        cancelOnError: false,
+        partialResults: true,
         onSoundLevelChange: (level) {
-          // Could visualize audio level here
+          // Could visualize
         },
       );
+    } catch (e) {
+      print("[LISTEN ERROR] $e");
+      _status = CallStatus.live;
+      notifyListeners();
     }
   }
 
   void _onSpeechResult(result) {
     _lastWords = result.recognizedWords;
+    print("[SPEECH] Heard: $_lastWords (final: ${result.finalResult})");
     
-    if (result.finalResult) {
-       print("Sending: $_lastWords");
-       _sendVoiceInput(_lastWords);
-       _lastWords = "";
-       // Note: listening usually stops automatically on final result, 
-       // triggering onStatus("notListening") -> which restarts the loop
+    if (result.finalResult && _lastWords.isNotEmpty) {
+      print("[SPEECH] Sending to server: $_lastWords");
+      _sendVoiceInput(_lastWords);
+      _lastWords = "";
     }
   }
 
   void _sendVoiceInput(String text) {
     if (_channel != null && text.isNotEmpty) {
-      _channel!.sink.add(json.encode({
+      final payload = json.encode({
         "type": "voice_input",
         "content": text
-      }));
+      });
+      print("[WS] Sending: $payload");
+      _channel!.sink.add(payload);
     }
   }
 
@@ -207,6 +257,7 @@ class CallStateProvider extends ChangeNotifier {
     _status = CallStatus.idle;
     _callStartTime = null;
     _isMuted = false;
+    _keepAliveTimer?.cancel();
     _tts.stop();
     _speech.stop();
     _channel?.sink.close();
