@@ -140,8 +140,16 @@ class CallStateProvider extends ChangeNotifier {
     }
   }
 
-  // Vibe Analysis (Shazam Style)
+  // Debug Logs
+  String _debugLog = "Thalamus Initialized";
+  String get debugLog => _debugLog;
+  
   List<double> _vibeBuffer = [];
+  
+  void _log(String msg) {
+    _debugLog = msg;
+    notifyListeners();
+  }
 
   void _startListening() async {
     if (_isMuted || !_speechEnabled || !_isExpanded || _status == CallStatus.speaking) return;
@@ -150,6 +158,7 @@ class CallStateProvider extends ChangeNotifier {
     try {
       _status = CallStatus.listening;
       _vibeBuffer.clear(); // Reset for new sentence
+      _log("Listening... (Mic Active)");
       notifyListeners();
       
       await _speech.listen(
@@ -166,17 +175,18 @@ class CallStateProvider extends ChangeNotifier {
                if (avgEnergy > 1.0) avgEnergy = 1.0;
                if (avgEnergy < 0.0) avgEnergy = 0.0;
              }
+             
+             _log("Heard: '${result.recognizedWords}' | Energy: ${avgEnergy.toStringAsFixed(2)}");
 
              _sendVoiceInput(result.recognizedWords, {
                "energy": avgEnergy,
-               "density": _vibeBuffer.length / 100, // Simplistic rhythm/density
+               "density": _vibeBuffer.length / 100, 
              });
           }
         },
         listenFor: const Duration(seconds: 30),
         localeId: "en_US",
         onSoundLevelChange: (level) {
-          // Collect energy snapshots several times per second
           _vibeBuffer.add(level);
         },
         cancelOnError: false,
@@ -184,64 +194,34 @@ class CallStateProvider extends ChangeNotifier {
       );
     } catch (e) {
       print("[LISTEN ERROR] $e");
+      _log("Listen Error: $e");
     }
   }
 
   void _sendVoiceInput(String text, Map<String, dynamic> vibe) async {
-    // 1. Calculate Response Locally (The "Math")
-    String responseText = ThalamusEngine.process(text, vibe);
-    print("[THALAMUS RESPONSE] $responseText");
-
-    // 2. Speak it locally (The "Voice")
+    // STOP LISTENING IMMEDIATELY to clear orange dot
+    await _speech.stop();
     _status = CallStatus.speaking;
     notifyListeners();
 
+    // 1. Calculate Response Locally (The "Math")
+    DateTime start = DateTime.now();
+    String responseText = ThalamusEngine.process(text, vibe);
+    int latency = DateTime.now().difference(start).inMilliseconds;
+    
+    _log("Math: ${latency}ms | Resp: '$responseText'");
+    print("[THALAMUS RESPONSE] $responseText");
+
+    // 2. Speak it locally (The "Voice")
     await _flutterTts.speak(responseText);
     
-    // 3. Wait for speech to finish (Simple delay for now or listener)
+    // 3. Wait for speech to finish
     _flutterTts.setCompletionHandler(() {
       _status = CallStatus.live;
+      _log("Waiting for user...");
       notifyListeners();
-      // Auto-listen again?
+      
+      // Auto-listen again
       Future.delayed(const Duration(milliseconds: 500), _startListening);
     });
-
-    /* SERVER DISABLED FOR LOCAL ALGORITHM TEST
-    if (_channel != null) {
-      _channel!.sink.add(json.encode({
-        "type": "voice_input",
-        "content": text,
-        "vibe": vibe
-      }));
-    }
-    */
   }
-
-  void shutdown() {
-    _isExpanded = false;
-    _status = CallStatus.idle;
-    _keepAliveTimer?.cancel();
-    _channel?.sink.close();
-    _startImageRotation();
-    notifyListeners();
-  }
-  
-  CallStatus get status => _status;
-  bool get isExpanded => _isExpanded;
-  int get currentImageIndex => _currentImageIndex;
-  bool get isMuted => _isMuted;
-  String get callDuration => "00:00"; 
-
-  void _startImageRotation() { 
-     _imageTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-       if (!_isExpanded) {
-         _currentImageIndex = (_currentImageIndex + 1) % 3; 
-         notifyListeners();
-       }
-     });
-  }
-  void toggleMute() { _isMuted = !_isMuted; notifyListeners(); }
-  void collapse() => shutdown();
-  void nextImage() => _currentImageIndex = (_currentImageIndex + 1) % 3;
-  void setImageIndex(int i) => _currentImageIndex = i;
-}

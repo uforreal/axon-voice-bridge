@@ -111,6 +111,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     );
                   },
                 ),
+              // Debug Console (The "Brain Monitor")
+              if (state.isExpanded)
+                Positioned(
+                  bottom: 40,
+                  left: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.3))
+                    ),
+                    child: Text(
+                      state.debugLog,
+                      style: const TextStyle(
+                        fontFamily: 'Courier',
+                        color: Colors.greenAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
             ],
           );
         },
