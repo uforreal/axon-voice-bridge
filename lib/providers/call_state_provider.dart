@@ -224,4 +224,29 @@ class CallStateProvider extends ChangeNotifier {
       // Auto-listen again
       Future.delayed(const Duration(milliseconds: 500), _startListening);
     });
+  // Helpers & Getters
+  CallStatus get status => _status;
+  bool get isExpanded => _isExpanded;
+  int get currentImageIndex => _currentImageIndex;
+  bool get isMuted => _isMuted;
+  String get callDuration => "00:00"; // Placeholder for now
+
+  void _startImageRotation() { 
+     _imageTimer?.cancel();
+     _imageTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+       if (!_isExpanded) {
+         _currentImageIndex = (_currentImageIndex + 1) % 3; 
+         notifyListeners();
+       }
+     });
   }
+
+  void toggleMute() { 
+    _isMuted = !_isMuted; 
+    notifyListeners(); 
+  }
+  
+  void collapse() => shutdown();
+  void nextImage() => _currentImageIndex = (_currentImageIndex + 1) % 3;
+  void setImageIndex(int i) => _currentImageIndex = i;
+}
