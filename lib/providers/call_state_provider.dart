@@ -224,6 +224,8 @@ class CallStateProvider extends ChangeNotifier {
       // Auto-listen again
       Future.delayed(const Duration(milliseconds: 500), _startListening);
     });
+  }
+
   // Helpers & Getters
   CallStatus get status => _status;
   bool get isExpanded => _isExpanded;
