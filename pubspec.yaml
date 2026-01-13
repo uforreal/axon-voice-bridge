@@ -16,7 +16,10 @@ dependencies:
   # Audio & Speech
   speech_to_text: ^7.0.0
   flutter_tts: ^4.2.0
+
   permission_handler: ^11.3.1
+  audioplayers: ^6.0.0
+
   
   # HTTP for API calls
   http: ^1.2.2
