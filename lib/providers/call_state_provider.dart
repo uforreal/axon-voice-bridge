@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // Import TTS
+import '../utils/thalamus_engine.dart'; // Import Thalamus
 
 // CLOUD SERVER (FastAPI Audio Stream)
 const String SERVER_URL = 'wss://samantha-cloud-core.onrender.com/ws';
@@ -24,6 +26,7 @@ class CallStateProvider extends ChangeNotifier {
   // Audio Input/Output
   final SpeechToText _speech = SpeechToText();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts(); // Local TTS
   WebSocketChannel? _channel;
   
   // Audio Buffer for Streaming
@@ -38,9 +41,8 @@ class CallStateProvider extends ChangeNotifier {
   Future<void> _initializeAll() async {
     try {
       // AudioPlayer works with default settings on iOS
-      // No need for custom AudioContext which has API compatibility issues
-      
-      // Initialize Speech Recognition
+      await ThalamusEngine.loadLibrary(); 
+      await _flutterTts.setLanguage("en-US");
       _speechEnabled = await _speech.initialize(
         onError: (e) {
           print('[SPEECH ERROR] ${e.errorMsg}');
@@ -138,22 +140,45 @@ class CallStateProvider extends ChangeNotifier {
     }
   }
 
+  // Vibe Analysis (Shazam Style)
+  List<double> _vibeBuffer = [];
+
   void _startListening() async {
     if (_isMuted || !_speechEnabled || !_isExpanded || _status == CallStatus.speaking) return;
     if (_speech.isListening) return;
 
     try {
       _status = CallStatus.listening;
+      _vibeBuffer.clear(); // Reset for new sentence
       notifyListeners();
+      
       await _speech.listen(
         onResult: (result) {
           if (result.finalResult && result.recognizedWords.isNotEmpty) {
              print("[SENDING] ${result.recognizedWords}");
-             _sendVoiceInput(result.recognizedWords);
+             
+             // Analyze Vibe Buffer
+             double avgEnergy = 0.5;
+             if (_vibeBuffer.isNotEmpty) {
+               avgEnergy = _vibeBuffer.reduce((a, b) => a + b) / _vibeBuffer.length;
+               // Scale to 0.0 - 1.0 (Approximate mapping from STT db levels)
+               avgEnergy = (avgEnergy + 2) / 10; 
+               if (avgEnergy > 1.0) avgEnergy = 1.0;
+               if (avgEnergy < 0.0) avgEnergy = 0.0;
+             }
+
+             _sendVoiceInput(result.recognizedWords, {
+               "energy": avgEnergy,
+               "density": _vibeBuffer.length / 100, // Simplistic rhythm/density
+             });
           }
         },
         listenFor: const Duration(seconds: 30),
         localeId: "en_US",
+        onSoundLevelChange: (level) {
+          // Collect energy snapshots several times per second
+          _vibeBuffer.add(level);
+        },
         cancelOnError: false,
         partialResults: true,
       );
@@ -162,13 +187,34 @@ class CallStateProvider extends ChangeNotifier {
     }
   }
 
-  void _sendVoiceInput(String text) {
+  void _sendVoiceInput(String text, Map<String, dynamic> vibe) async {
+    // 1. Calculate Response Locally (The "Math")
+    String responseText = ThalamusEngine.process(text, vibe);
+    print("[THALAMUS RESPONSE] $responseText");
+
+    // 2. Speak it locally (The "Voice")
+    _status = CallStatus.speaking;
+    notifyListeners();
+
+    await _flutterTts.speak(responseText);
+    
+    // 3. Wait for speech to finish (Simple delay for now or listener)
+    _flutterTts.setCompletionHandler(() {
+      _status = CallStatus.live;
+      notifyListeners();
+      // Auto-listen again?
+      Future.delayed(const Duration(milliseconds: 500), _startListening);
+    });
+
+    /* SERVER DISABLED FOR LOCAL ALGORITHM TEST
     if (_channel != null) {
       _channel!.sink.add(json.encode({
         "type": "voice_input",
-        "content": text
+        "content": text,
+        "vibe": vibe
       }));
     }
+    */
   }
 
   void shutdown() {

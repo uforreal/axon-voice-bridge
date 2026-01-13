@@ -53,3 +53,4 @@ flutter:
     - assets/images/futuristic-interior.jpg
     - assets/images/green-grotto.jpg
     - assets/images/tuscany-landscape.jpg
+    - assets/data/thalamus_library.json

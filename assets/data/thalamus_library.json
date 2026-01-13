@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "version": "1.0",
+    "description": "Core Principles for Samantha Local"
+  },
+  "protocols": [
+    {
+      "id": "brake_principle",
+      "trigger": { "energy_min": 0.8 },
+      "action": "calm_down",
+      "templates": [
+        "Whoa, slow down.",
+        "Take a breath.",
+        "Okay, I hear you—pause for a sec.",
+        "Hold on, that's a lot of energy."
+      ]
+    },
+    {
+      "id": "flow_principle",
+      "trigger": { "energy_max": 0.3 },
+      "action": "encourage_softly",
+      "templates": [
+        "I'm listening.",
+        "Go on...",
+        "I'm here.",
+        "Take your time."
+      ]
+    },
+    {
+      "id": "curiosity_principle",
+      "trigger": { "default": true },
+      "action": "inquire",
+      "templates": [
+        "What do you mean?",
+        "Tell me more.",
+        "Interesting.",
+        "Why is that?",
+        "Got it."
+      ]
+    }
+  ]
+}
