@@ -251,4 +251,13 @@ class CallStateProvider extends ChangeNotifier {
   void collapse() => shutdown();
   void nextImage() => _currentImageIndex = (_currentImageIndex + 1) % 3;
   void setImageIndex(int i) => _currentImageIndex = i;
+
+  void shutdown() {
+    _isExpanded = false;
+    _status = CallStatus.idle;
+    _keepAliveTimer?.cancel();
+    _channel?.sink.close();
+    _startImageRotation();
+    notifyListeners();
+  }
 }
