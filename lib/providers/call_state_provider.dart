@@ -37,23 +37,9 @@ class CallStateProvider extends ChangeNotifier {
 
   Future<void> _initializeAll() async {
     try {
-      // Initialize Audio Player for Streaming
-      await _audioPlayer.setAudioContext(AudioContext(
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.playAndRecord,
-          options: [
-            AVAudioSessionCategoryOptions.defaultToSpeaker,
-            AVAudioSessionCategoryOptions.allowBluetooth,
-            AVAudioSessionCategoryOptions.mixWithOthers
-          ],
-        ),
-        android: AudioContextAndroid(
-          mode: AudioMode.normal,
-          usageType: AndroidUsageType.voiceCommunication,
-          contentType: AndroidContentType.speech,
-        ),
-      ));
-
+      // AudioPlayer works with default settings on iOS
+      // No need for custom AudioContext which has API compatibility issues
+      
       // Initialize Speech Recognition
       _speechEnabled = await _speech.initialize(
         onError: (e) {
