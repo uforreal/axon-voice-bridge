@@ -151,26 +151,37 @@ class CallStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _silenceTimer;
+
   void _startListening() async {
     if (_isMuted || !_speechEnabled || !_isExpanded || _status == CallStatus.speaking) return;
     if (_speech.isListening) return;
 
     try {
       _status = CallStatus.listening;
-      _vibeBuffer.clear(); // Reset for new sentence
+      _vibeBuffer.clear(); 
       _log("Listening... (Mic Active)");
       notifyListeners();
       
       await _speech.listen(
         onResult: (result) {
+          // Reset silence timer on ANY speech activity
+          _silenceTimer?.cancel();
+          _silenceTimer = Timer(const Duration(milliseconds: 1500), () {
+              if (_status == CallStatus.listening) {
+                _log("Silence detected. Stopping mic.");
+                _speech.stop(); 
+              }
+          });
+
           if (result.finalResult && result.recognizedWords.isNotEmpty) {
+             _silenceTimer?.cancel(); // Cancel timer, we have final result
              print("[SENDING] ${result.recognizedWords}");
              
              // Analyze Vibe Buffer
              double avgEnergy = 0.5;
              if (_vibeBuffer.isNotEmpty) {
                avgEnergy = _vibeBuffer.reduce((a, b) => a + b) / _vibeBuffer.length;
-               // Scale to 0.0 - 1.0 (Approximate mapping from STT db levels)
                avgEnergy = (avgEnergy + 2) / 10; 
                if (avgEnergy > 1.0) avgEnergy = 1.0;
                if (avgEnergy < 0.0) avgEnergy = 0.0;
@@ -184,8 +195,9 @@ class CallStateProvider extends ChangeNotifier {
              });
           }
         },
-        listenFor: const Duration(seconds: 30),
+        listenFor: const Duration(seconds: 60), // Let our VAD handle the stop
         localeId: "en_US",
+        pauseFor: const Duration(seconds: 60), // Disable auto-pause, we do it manually
         onSoundLevelChange: (level) {
           _vibeBuffer.add(level);
         },
