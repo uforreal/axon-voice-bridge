@@ -24,13 +24,25 @@ jobs:
       - name: Pod Install
         run: |
           cd ios
+          rm -rf Pods
+          rm Podfile.lock
           pod install
           cd ..
 
-      - name: Disable Signing in Xcode Project
+      - name: Disable Signing (Aggressive)
         run: |
-          sed -i '' 's/CODE_SIGNING_ALLOWED = YES/CODE_SIGNING_ALLOWED = NO/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGNING_REQUIRED = YES/CODE_SIGNING_REQUIRED = NO/g' ios/Runner.xcodeproj/project.pbxproj
+          cd ios
+          # 1. Disable signing in project level
+          sed -i '' 's/CODE_SIGNING_ALLOWED = YES/CODE_SIGNING_ALLOWED = NO/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGNING_REQUIRED = YES/CODE_SIGNING_REQUIRED = NO/g' Runner.xcodeproj/project.pbxproj
+
+          # 2. Remove Development Team ID
+          sed -i '' '/DevelopmentTeam =/d' Runner.xcodeproj/project.pbxproj
+
+          # 3. Force Code Sign Identity to empty
+          sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Distribution";/CODE_SIGN_IDENTITY = "";/g' Runner.xcodeproj/project.pbxproj
+          cd ..
 
       - name: Build iOS (No Codesign)
         run: |
