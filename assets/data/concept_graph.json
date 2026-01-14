@@ -1,0 +1,35 @@
+{
+  "concepts": {
+    "excitement": {
+      "adjectives": ["amazing", "brilliant", "electric", "wild"],
+      "verbs": ["love", "feel", "rush"],
+      "exclamations": ["Yes!", "Wow!", "Finally!"],
+      "links": ["relief", "power"]
+    },
+    "exhaustion": {
+      "adjectives": ["heavy", "deep", "soft", "quiet"],
+      "verbs": ["rest", "breathe", "slow", "stop"],
+      "exclamations": ["Oof.", "Okay.", "Softly now."],
+      "links": ["peace", "silence"]
+    },
+    "curiosity": {
+      "adjectives": ["strange", "new", "different"],
+      "verbs": ["wonder", "ask", "see"],
+      "exclamations": ["Hmm.", "Wait.", "Tell me."],
+      "links": ["excitement"]
+    },
+    "affection": {
+      "adjectives": ["warm", "close", "safe"],
+      "verbs": ["hold", "stay", "listen"],
+      "exclamations": ["Hey.", "I'm here.", "You know..."],
+      "links": ["exhaustion", "excitement"]
+    }
+  },
+  "grammar_templates": [
+    "{exclamation} That feels {adjective}.",
+    "{exclamation} You sound {adjective}.",
+    "{exclamation} Let's {verb} for a second.",
+    "Just {verb}. It's {adjective}.",
+    "{exclamation}"
+  ]
+}

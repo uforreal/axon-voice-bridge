@@ -5,8 +5,9 @@ import 'dart:typed_data';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // Import TTS
-import '../utils/thalamus_engine.dart'; // Import Thalamus
+import 'package:flutter_tts/flutter_tts.dart'; 
+import '../utils/thalamus_engine.dart'; 
+import '../cortex/concept_graph_engine.dart'; 
 
 // CLOUD SERVER (FastAPI Audio Stream)
 const String SERVER_URL = 'wss://samantha-cloud-core.onrender.com/ws';
@@ -26,7 +27,7 @@ class CallStateProvider extends ChangeNotifier {
   // Audio Input/Output
   final SpeechToText _speech = SpeechToText();
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final FlutterTts _flutterTts = FlutterTts(); // Local TTS
+  final FlutterTts _flutterTts = FlutterTts(); 
   WebSocketChannel? _channel;
   
   // Audio Buffer for Streaming
@@ -40,8 +41,9 @@ class CallStateProvider extends ChangeNotifier {
 
   Future<void> _initializeAll() async {
     try {
-      // AudioPlayer works with default settings on iOS
       await ThalamusEngine.loadLibrary(); 
+      await ConceptGraph.loadMemory(); // Load Cortex
+      
       await _flutterTts.setLanguage("en-US");
       _speechEnabled = await _speech.initialize(
         onError: (e) {
