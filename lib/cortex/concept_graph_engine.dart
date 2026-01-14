@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/services.dart';
+import 'the_forager.dart';
 
 class ConceptGraph {
   static Map<String, dynamic>? _graph;
   static final Random _random = Random();
+  static final TheForager _forager = TheForager();
 
   /// Load the Neural Web
   static Future<void> loadMemory() async {
@@ -18,22 +20,48 @@ class ConceptGraph {
   }
 
   /// The "Spark" function: Generates a thought based on Impulse
-  static String generateThought(Map<String, dynamic> vibe) {
+  static Future<String> generateThought(Map<String, dynamic> vibe, {String? textInput}) async {
     if (_graph == null) return "System initializing...";
 
-    // 1. Determine the "Active Concept" based on Vibe
-    String activeConcept = _resolveImpulse(vibe);
-    print("[CORTEX] Active Concept: $activeConcept");
+    // 1. Determine the "Active Concept"
+    // Check if text triggers a semantic node?
+    String activeConcept = "unknown";
+    
+    if (textInput != null) {
+       // Simple keyword matching for existing concepts
+       _graph!['concepts'].forEach((key, value) {
+          if (textInput.toLowerCase().contains(key)) {
+             activeConcept = key;
+          }
+       });
+    }
 
+    // If still unknown, fall back to Vibe
+    if (activeConcept == "unknown") {
+       activeConcept = _resolveImpulse(vibe);
+    }
+    
     // 2. Fetch the Web of Words for this concept
-    Map<String, dynamic> node = _graph!['concepts'][activeConcept];
+    Map<String, dynamic>? node = _graph!['concepts'][activeConcept];
+    
+    // 3. THE GAP (The Unknown)
+    // If the node is still generic (just affection/exhaustion) AND the user asked a question...
+    // We trigger the Forager.
+    if (textInput != null && (textInput.contains("who") || textInput.contains("what")) && activeConcept == "affection") {
+       print("[CORTEX] Unknown Topic detected. Foraging...");
+       String? learnedFact = await _forager.forage(textInput);
+       if (learnedFact != null) {
+         return "I learned this: $learnedFact";
+       }
+    }
+
     if (node == null) return "I'm listening.";
 
-    // 3. Select a Grammar Template
+    // 4. Select a Grammar Template
     List<dynamic> templates = _graph!['grammar_templates'];
     String template = templates[_random.nextInt(templates.length)];
 
-    // 4. Fill the slots (The Assembly)
+    // 5. Fill the slots (The Assembly)
     return _assembleSentence(template, node);
   }
 

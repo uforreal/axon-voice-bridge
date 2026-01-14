@@ -218,13 +218,17 @@ class CallStateProvider extends ChangeNotifier {
     _status = CallStatus.speaking;
     notifyListeners();
 
-    // 1. Calculate Response Locally (The "Math")
+    // 1. Calculate Response Locally (The "Living Graph")
     DateTime start = DateTime.now();
-    String responseText = ThalamusEngine.process(text, vibe);
+    
+    // SWAPPED: Using ConceptGraph instead of ThalamusEngine
+    // Now Async because of Forager
+    String responseText = await ConceptGraph.generateThought(vibe, textInput: text);
+    
     int latency = DateTime.now().difference(start).inMilliseconds;
     
-    _log("Math: ${latency}ms | Resp: '$responseText'");
-    print("[THALAMUS RESPONSE] $responseText");
+    _log("Cortex: ${latency}ms | Resp: '$responseText'");
+    print("[CORTEX RESPONSE] $responseText");
 
     // 2. Speak it locally (The "Voice")
     await _flutterTts.speak(responseText);

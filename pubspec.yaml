@@ -32,6 +32,8 @@ dependencies:
   
   # UI Effects
   flutter_animate: ^4.5.0
+  flutter_inappwebview: ^6.1.5
+  html: ^0.15.6
 
 dev_dependencies:
   flutter_test:
