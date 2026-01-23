@@ -1,0 +1,20 @@
+name: Ferrari
+options:
+  bundleIdPrefix: com.ferrari
+targets:
+  Ferrari:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources: [Sources, Resources]
+    dependencies:
+      - sdk: AudioToolbox.framework
+      - sdk: AVFoundation.framework
+      - sdk: CoreML.framework
+      - pod: onnxruntime-objc
+    info:
+      path: Info.plist
+      properties:
+        NSMicrophoneUsageDescription: "Ferrari needs the microphone to hear your commands."
+        UIBackgroundModes: [audio]
+        UILaunchStoryboardName: LaunchScreen

@@ -16,6 +16,15 @@ jobs:
       - name: Setup Swift
         run: swift --version
 
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: |
+          cd ios_code
+          xcodegen generate
+          cd ..
+
       - name: Install Pods
         run: |
           cd ios_code
