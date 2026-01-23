@@ -14,7 +14,8 @@ class FerrariAudioStreamer {
     private let mixer: AVAudioMixerNode
     
     // Sample rate of Kokoro is 24,000Hz
-    private let format = AVAudioFormat(standardFormatWithSampleRate: 24000, channels: 1)!
+    // We explicitly define the layout to avoid channel mismatches.
+    private let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 24000, channels: 1, interleaved: false)!
     
     init() {
         mixer = engine.mainMixerNode
