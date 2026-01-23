@@ -41,7 +41,7 @@ class FerrariEngine {
             do {
                 // Prepare input_ids (Int64)
                 let inputShape: [NSNumber] = [1, NSNumber(value: phonemeIds.count)]
-                let inputData = Data(bytes: phonemeIds, count: phonemeIds.count * MemoryLayout<Int64>.size)
+                let inputData = NSMutableData(bytes: phonemeIds, length: phonemeIds.count * MemoryLayout<Int64>.size)
                 let inputTensor = try ORTValue(tensorData: inputData, elementType: .int64, shape: inputShape)
                 
                 // Run Inference (Speed already baked into the ONNX graph)
