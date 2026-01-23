@@ -5,8 +5,5 @@ target 'Ferrari' do
 
   # Core Neural Engine support
   pod 'onnxruntime-objc'
-  
-  # Gemini API integration
-  pod 'GoogleGenerativeAI'
 
 end
