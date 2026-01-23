@@ -47,7 +47,7 @@ struct FerrariDashboardView: View {
                     conversation.userSpoke(text: "Hello Ferrari, can you explain the extrude command?")
                 }) {
                     Text("MANUAL TEST")
-                        .font(.system(.callout, weight: .bold, design: .monospaced))
+                        .font(.callout.bold().monospaced())
                         .padding()
                         .frame(maxWidth: .infinity)
                         .background(Color.red)

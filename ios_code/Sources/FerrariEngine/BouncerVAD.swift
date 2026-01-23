@@ -39,11 +39,11 @@ class BouncerVAD {
         
         do {
             let shape: [NSNumber] = [1, NSNumber(value: pcmData.count)]
-            let data = Data(bytes: pcmData, count: pcmData.count * MemoryLayout<Float>.size)
-            let tensor = try ORTValue(tensorData: data, elementType: .float32, shape: shape)
+            let data = NSMutableData(bytes: pcmData, length: pcmData.count * MemoryLayout<Float>.size)
+            let tensor = try ORTValue(tensorData: data, elementType: .float, shape: shape)
             
-            let srTensor = try ORTValue(tensorData: Data([0, 0, 125, 70]), // 16000 as float32 bytes
-                                      elementType: .float32, shape: [1])
+            let srData = NSMutableData(bytes: [Float(16000)], length: MemoryLayout<Float>.size)
+            let srTensor = try ORTValue(tensorData: srData, elementType: .float, shape: [1])
             
             let outputs = try session.run(withInputs: ["input": tensor, "sr": srTensor],
                                          outputNames: ["output"],
