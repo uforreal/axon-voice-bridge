@@ -8,7 +8,11 @@ class CortexReasoner {
     private let firewall = VerificationLayer()
     private let router = ThalamusRouter()
     private var localKnowledge: [String: KnowledgeDomain] = [:] // Cached domains
-    
+
+    init() {
+        loadDomains()
+    }
+
     /**
      Main Entry Point for 'Thinking'
      */
@@ -41,10 +45,48 @@ class CortexReasoner {
         }
     }
 
+    private func loadDomains() {
+        // Since XcodeGen adds Resources as groups, files are flat in the bundle root.
+        // We scan for all JSONs and try to decode them as KnowledgeDomain.
+        guard let jsonFiles = Bundle.main.urls(forResourcesWithExtension: "json", subdirectory: nil) else {
+            print("⚠️ CortexReasoner: No JSON files found in bundle.")
+            return
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+        for url in jsonFiles {
+            do {
+                let data = try Data(contentsOf: url)
+                // Try decoding as KnowledgeDomain
+                if let domain = try? decoder.decode(KnowledgeDomain.self, from: data) {
+                    self.localKnowledge[domain.name] = domain
+                    print("📚 Loaded Knowledge Domain: \(domain.name) from \(url.lastPathComponent)")
+                }
+            } catch {
+                print("❌ Failed to load potential domain \(url.lastPathComponent): \(error)")
+            }
+        }
+    }
+
     private func searchLocalKnowledge(_ query: String, tool: ThalamusRouter.Tool) -> String? {
-        // Here we search our 'domains/' JSON files.
-        // If query matches a 'Shortcut' or 'Principle' with confidence > 0.8
-        return nil // Placeholder for local database lookup
+        let normalizedQuery = query.lowercased()
+        
+        for domain in localKnowledge.values {
+            // 1. Check Concepts
+            if let concepts = domain.concepts {
+                for (conceptName, conceptData) in concepts {
+                    if normalizedQuery.contains(conceptName.lowercased()) {
+                        return "[Local Knowledge: \(domain.name)] \(conceptData.definition)"
+                    }
+                }
+            }
+            
+            // 2. Check Principles (if needed for reasoning, skipped for simple definition lookup)
+        }
+        
+        return nil
     }
 
     private func escalate(_ query: String, toolType: ThalamusRouter.Tool, onResult: @escaping (String, Float, String, TruthClass) -> Void) {

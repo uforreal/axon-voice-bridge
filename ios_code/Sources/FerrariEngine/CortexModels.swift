@@ -41,9 +41,9 @@ struct Concept: Codable {
  */
 struct KnowledgeDomain: Codable {
     var name: String
-    var concepts: [String: Concept]
-    var procedures: [String: [String]]
-    var commonErrors: [String: String] // Symptom -> Fix
-    var shortcuts: [String: String]
-    var principles: [Principle]
+    var concepts: [String: Concept]?
+    var procedures: [String: [String]]?
+    var commonErrors: [String: String]? // Symptom -> Fix
+    var shortcuts: [String: String]?
+    var principles: [Principle]?
 }
