@@ -1,5 +1,4 @@
 import Foundation
-import AVFoundation
 import onnxruntime_objc
 
 /**
@@ -24,8 +23,7 @@ class BouncerVAD {
         }
         
         let options = try ORTSessionOptions()
-        // VAD stays on the CPU/ANE because it's so small, doesn't need much power.
-        try options.appendCoreMLExecutionProvider(with: .all)
+        // Use default CPU execution (CoreML provider requires specific configuration)
         
         self.session = try ORTSession(env: env, modelPath: modelPath, sessionOptions: options)
     }

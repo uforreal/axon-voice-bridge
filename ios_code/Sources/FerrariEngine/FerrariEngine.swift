@@ -5,7 +5,7 @@ import onnxruntime_objc
  # FerrariEngine.swift (Solid Edition)
  
  This engine is optimized for the 'Solid Basis' we proved on PC.
- It uses Int64 IDs and is mapped to the Apple Neural Engine.
+ It uses Int64 IDs and runs on CPU (CoreML can be enabled manually if needed).
  */
 class FerrariEngine {
     private var session: ORTSession?
@@ -23,12 +23,10 @@ class FerrariEngine {
         }
         
         let options = try ORTSessionOptions()
-        // Force CoreML for power efficiency
-        try options.appendCoreMLExecutionProvider(with: .all)
-        try options.setSessionGraphOptimizationLevel(.all)
+        // Use default execution providers (CPU) - CoreML can be added later with proper configuration
         
         self.session = try ORTSession(env: env, modelPath: modelPath, sessionOptions: options)
-        print("🏎️ Ferrari Engine ignited on ANE.")
+        print("🏎️ Ferrari Engine ignited.")
     }
     
     /**
@@ -44,7 +42,7 @@ class FerrariEngine {
                 let inputData = NSMutableData(bytes: phonemeIds, length: phonemeIds.count * MemoryLayout<Int64>.size)
                 let inputTensor = try ORTValue(tensorData: inputData, elementType: .int64, shape: inputShape)
                 
-                // Run Inference (Speed already baked into the ONNX graph)
+                // Run Inference
                 let outputs = try session.run(withInputs: ["input_ids": inputTensor],
                                              outputNames: ["audio"],
                                              runOptions: nil)

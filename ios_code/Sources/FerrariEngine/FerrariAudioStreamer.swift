@@ -21,11 +21,6 @@ class FerrariAudioStreamer {
         engine.attach(player)
         engine.connect(player, to: mixer, format: format)
         
-        // Optimize for Voice
-        if #available(iOS 13.0, *) {
-            try? engine.setVoiceProcessingEnabled(true)
-        }
-        
         do {
             try engine.start()
         } catch {
@@ -47,7 +42,6 @@ class FerrariAudioStreamer {
         }
         
         // Schedule for immediate playback
-        // player.scheduleBuffer handles the internal high-priority queuing for us
         player.scheduleBuffer(buffer, at: nil, options: .interrupts, completionHandler: nil)
         
         if !player.isPlaying {
