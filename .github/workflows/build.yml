@@ -1,0 +1,71 @@
+name: Build Ferrari iOS IPA
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build_ios:
+    name: Build Native iOS App (Ferrari)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Swift
+        run: swift --version
+
+      - name: Install Pods
+        run: |
+          cd ios_code
+          # If they have a Podfile, this will run. 
+          # If not, we should provide one.
+          if [ -f Podfile ]; then
+            pod install --repo-update
+          fi
+          cd ..
+
+      - name: Build iOS with xcodebuild (No Signing)
+        run: |
+          cd ios_code
+          # Note: This assumes a project named 'Ferrari.xcodeproj' and scheme 'Ferrari'
+          # If using a workspace (after pod install), change to -workspace Ferrari.xcworkspace
+          
+          # Check if workspace or project exists
+          TARGET_FILE="Ferrari.xcodeproj"
+          if [ -d "Ferrari.xcworkspace" ]; then
+            TARGET_FILE="Ferrari.xcworkspace"
+            TARGET_FLAG="-workspace"
+          else
+            TARGET_FLAG="-project"
+          fi
+
+          xcodebuild \
+            $TARGET_FLAG $TARGET_FILE \
+            -scheme Ferrari \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ../build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
+          cd ..
+
+      - name: Create Payload Directory
+        run: |
+          mkdir -p Payload
+          # Find the built .app file. xcodebuild output path varies based on configuration.
+          mv build/ios/Build/Products/Release-iphoneos/*.app Payload/
+
+      - name: Zip IPA
+        run: |
+          zip -r Ferrari.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ferrari-Unsigned
+          path: Ferrari.ipa

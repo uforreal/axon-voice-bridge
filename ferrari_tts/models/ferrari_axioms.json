@@ -1,0 +1,47 @@
+{
+  "identity": "af_heart_vjepa",
+  "vocal_logic": {
+    "warmth_formula": {
+      "description": "The math of the 'Heart' voice",
+      "pitch_stabilizer": 0.98,
+      "harmonic_warmth": 1.15,
+      "breath_coefficient": 0.12
+    },
+    "prosody_axioms": [
+      {
+        "trigger": "emotional_adjective",
+        "action": "DEFER_SPEED",
+        "value": 0.85,
+        "logic": "Human speakers pause 15ms before declaring a feeling to simulate 'sincerity'"
+      },
+      {
+        "trigger": "punctuation_comma",
+        "action": "PITCH_DROP_RECOVERY",
+        "value": -0.05,
+        "logic": "A slight drop in pitch followed by a breath simulates contemplation"
+      },
+      {
+        "trigger": "sentence_end_question",
+        "action": "UPTALK_GRADIENT",
+        "value": 0.15,
+        "logic": "Rising frequency over the last 3 phonemes"
+      }
+    ]
+  },
+  "pruning_instructions": {
+    "strip_tokens": [
+      "math_formulas",
+      "coding_symbols",
+      "foreign_languages",
+      "legal_jargon"
+    ],
+    "keep_layers": [
+      0,
+      1,
+      2,
+      8,
+      12
+    ],
+    "target_ram": "1.2GB"
+  }
+}

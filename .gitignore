@@ -1,0 +1,26 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+output/
+
+# OS
+.DS_Store
+Thumbs.db
+.git/index.lock
+
+# Audio / Tests
+*.wav
+export_log.txt
+
+# iOS Build
+ios_code/build/
+ios_code/Pods/
+ios_code/.bundle/
+ios_code/DerivedData/
+ios_code/*.xcresult
+ios_code/*.ipa
+Payload/
+Ferrari.ipa

@@ -1,0 +1,24 @@
+{
+  "name": "SolidWorks",
+  "concepts": {
+    "extrude": {
+      "definition": "Creating a 3D solid from a 2D sketch.",
+      "principles": ["Sketch must be closed", "No overlapping lines"],
+      "relationships": {
+        "revolve": "Alternative 3D generation",
+        "sketch": "Required parent"
+      }
+    }
+  },
+  "principles": [
+    {
+      "statement": "Sketch must be closed before extrude",
+      "logic": "IF sketch.isClosed == false THEN extrude = error",
+      "domain": "Geometry",
+      "confidence": { "score": 1.0, "truthType": "HAQ" }
+    }
+  ],
+  "common_errors": {
+    "rebuild_error": "Broken references in the tree. Check parent sketches."
+  }
+}
